@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#EEF1F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1720" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Listening">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  [hidden] { display: none !important; }
+</style>
+<title>Listening Cards</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  /* Layout: one centered column, phone-first. Card on top, actions under it, tools below. */
+  :root {
+    --bg: #EEF1F5;
+    --surface: #FFFFFF;
+    --fg: #14202B;
+    --muted: #5B6B7A;
+    --line: #D3DAE2;
+    --accent: #2447F5;
+    --accent-fg: #FFFFFF;
+    --accent-soft: #E1E7FF;
+    --good: #12805C;
+    --good-soft: #D8F1E7;
+    --warn: #B4540A;
+    --warn-soft: #FBE6D2;
+    --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F1720; --surface: #182330; --fg: #E8EEF4; --muted: #94A5B5; --line: #2A3947;
+      --accent: #7C93FF; --accent-fg: #0F1720; --accent-soft: #23305E;
+      --good: #4FD1A1; --good-soft: #143A2E; --warn: #F0A25E; --warn-soft: #3D2A17;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F1720; --surface: #182330; --fg: #E8EEF4; --muted: #94A5B5; --line: #2A3947;
+    --accent: #7C93FF; --accent-fg: #0F1720; --accent-soft: #23305E;
+    --good: #4FD1A1; --good-soft: #143A2E; --warn: #F0A25E; --warn-soft: #3D2A17;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 15px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 20px 40px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--accent); outline-offset: 2px;
+  }
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: var(--font-display); font-weight: 800; font-size: 30px; line-height: 1.05; margin: 2px 0 0; letter-spacing: -.01em; text-wrap: balance; }
+  .score { text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .score b { display: block; font-size: 22px; color: var(--good); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--good); transition: width .3s; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+    padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--muted);
+  }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+
+  .stage { perspective: 1200px; }
+  .card { position: relative; width: 100%; height: 300px; border: 0; padding: 0; background: none; display: block; text-align: left; }
+  .card-inner { position: absolute; inset: 0; transition: transform .45s cubic-bezier(.3,.7,.3,1); transform-style: preserve-3d; }
+  .card.flipped .card-inner { transform: rotateY(180deg); }
+  .face {
+    position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+  }
+  .face.back { transform: rotateY(180deg); background: var(--accent-soft); border-color: transparent; }
+  .tagrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .pill { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+  .pill.know { background: var(--good-soft); color: var(--good); }
+  .pill.learn { background: var(--warn-soft); color: var(--warn); }
+  .word {
+    font-family: var(--font-display); font-weight: 800; font-size: clamp(30px, 9vw, 42px);
+    line-height: 1.1; letter-spacing: -.01em; overflow-wrap: anywhere; text-wrap: balance;
+  }
+  .face.back .word { color: var(--accent); }
+  .eg { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+  .eg em { font-style: normal; color: var(--fg); }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  .pos { text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .actions { display: grid; grid-template-columns: 44px 1fr 1fr 44px; gap: 8px; }
+  .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; min-height: 46px; font-weight: 600; }
+  .btn.know { background: var(--good); border-color: var(--good); color: var(--bg); }
+  .btn.learn { background: var(--warn-soft); border-color: var(--warn-soft); color: var(--warn); }
+  .btn:active { transform: translateY(1px); }
+
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tool { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--muted); }
+  .tool[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  .empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; padding: 36px 20px; text-align: center; color: var(--muted); }
+
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 0 16px; }
+  summary { padding: 14px 0; font-weight: 600; cursor: pointer; }
+  form { display: grid; gap: 10px; padding-bottom: 16px; }
+  label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  input, select {
+    font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; width: 100%; min-width: 0;
+  }
+  .submit { background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 10px; min-height: 44px; font-weight: 600; }
+  .mine { list-style: none; margin: 0; padding: 0 0 14px; display: grid; gap: 6px; }
+  .mine li { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 14px; min-width: 0; }
+  .mine span { min-width: 0; overflow-wrap: anywhere; }
+  .mine button { border: 0; background: none; color: var(--warn); font-size: 13px; }
+  .note { font-size: 12px; color: var(--muted); margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) { .card-inner, .bar > i { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">IELTS Listening · Part 2</div>
+      <h1>Listening Cards</h1>
+    </div>
+    <div class="score"><b id="knownCount">0</b><span id="totalLabel">/ 0 bilaman</span></div>
+  </header>
+  <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+
+  <div class="chips" id="chips" role="group" aria-label="Mavzu"></div>
+
+  <div class="stage" id="stage"></div>
+  <div class="pos" id="pos"></div>
+
+  <div class="actions" id="actions">
+    <button class="btn" id="prev" aria-label="Oldingi">&#8592;</button>
+    <button class="btn learn" id="learn">Yana o'rganaman</button>
+    <button class="btn know" id="know">Bilaman</button>
+    <button class="btn" id="next" aria-label="Keyingi">&#8594;</button>
+  </div>
+
+  <div class="tools">
+    <button class="tool" id="shuffle" aria-pressed="false">Aralashtirish</button>
+    <button class="tool" id="reverse" aria-pressed="false">Teskari: UZ → EN</button>
+    <button class="tool" id="reset">Natijani tozalash</button>
+  </div>
+
+  <details id="addBox">
+    <summary>Yangi so'z qo'shish</summary>
+    <form id="addForm">
+      <label for="fEn">Inglizcha<input id="fEn" required autocomplete="off" placeholder="masalan: leaflet"></label>
+      <label for="fUz">O'zbekcha<input id="fUz" required autocomplete="off" placeholder="masalan: varaqa"></label>
+      <label for="fEg">Misol (ixtiyoriy)<input id="fEg" autocomplete="off" placeholder="Take a leaflet at the entrance."></label>
+      <label for="fCat">Mavzu
+        <select id="fCat">
+          <option value="xarita">Xarita</option>
+          <option value="xizmat">Xizmat</option>
+          <option value="tuzoq">Tuzoq</option>
+          <option value="mening" selected>Mening so'zlarim</option>
+        </select>
+      </label>
+      <button class="submit" type="submit">Qo'shish</button>
+      <p class="note">Bu yerda qo'shgan so'zlar faqat shu qurilmada saqlanadi. Ko'p so'zni birdaniga menga yozsangiz, ilovaga men qo'shib beraman.</p>
+    </form>
+    <ul class="mine" id="mine"></ul>
+  </details>
+</div>
+
+<script>
+  var CATS = { all: "Hammasi", xarita: "Xarita", xizmat: "Xizmat", tuzoq: "Tuzoq so'zlar", mening: "Mening so'zlarim", learn: "Qiyinlari" };
+
+  // [english, uzbek, category, example]
+  var BASE = [
+    ["opposite", "qarshisida", "xarita", "The café is opposite the library."],
+    ["next to / beside / adjacent to", "yonida", "xarita", "The shop is next to the bank."],
+    ["between", "o'rtasida", "xarita", "The park is between the school and the station."],
+    ["behind", "orqasida", "xarita", "The car park is behind the museum."],
+    ["in front of", "oldida", "xarita", "There is a fountain in front of the main hall."],
+    ["on your left / right", "chap / o'ng tomoningizda", "xarita", "On your left you will see the gift shop."],
+    ["straight ahead", "to'g'riga", "xarita", "Go straight ahead until you reach the lake."],
+    ["junction / crossroads", "chorraha", "xarita", "Turn right at the junction."],
+    ["roundabout", "aylana yo'l", "xarita", "Take the second exit at the roundabout."],
+    ["entrance", "kirish", "xarita", "The main entrance is on Park Road."],
+    ["exit", "chiqish", "xarita", "Please use the east exit."],
+    ["car park", "mashina to'xtash joyi", "xarita", "The car park is free for visitors."],
+    ["reception", "qabulxona", "xarita", "Please sign in at reception."],
+    ["staircase", "zina", "xarita", "The staircase leads to the second floor."],
+    ["lift", "lift", "xarita", "The lift is next to the café."],
+    ["corridor", "yo'lak (bino ichida)", "xarita", "The offices are along the corridor."],
+    ["courtyard", "hovli", "xarita", "Lunch is served in the courtyard."],
+    ["path / trail", "yo'lak, so'qmoq", "xarita", "Follow the path through the woods."],
+    ["pier / harbour", "pristan / port", "xarita", "Boats leave from the pier every hour."],
+    ["lake", "ko'l", "xarita", "The picnic area is beside the lake."],
+    ["woods", "o'rmon", "xarita", "A walking trail goes through the woods."],
+    ["bridge", "ko'prik", "xarita", "Cross the bridge and turn left."],
+    ["pedestrian crossing", "piyodalar o'tish joyi", "xarita", "The museum is just after the pedestrian crossing."],
+
+    ["admission / entrance fee", "kirish haqi", "xizmat", "Admission is ten pounds for adults."],
+    ["free of charge", "bepul", "xizmat", "Parking is free of charge after 6 pm."],
+    ["booking / reservation", "oldindan band qilish", "xizmat", "Booking is essential for the tour."],
+    ["deposit", "avans (oldindan to'lov)", "xizmat", "You need to pay a deposit of £20."],
+    ["refund", "pulni qaytarish", "xizmat", "We can give you a full refund."],
+    ["membership", "a'zolik", "xizmat", "Membership costs £30 a year."],
+    ["discount", "chegirma", "xizmat", "Students get a 15% discount."],
+    ["guided tour", "gid bilan ekskursiya", "xizmat", "The guided tour lasts about an hour."],
+    ["brochure / leaflet", "buklet, varaqa", "xizmat", "Pick up a brochure at the desk."],
+    ["volunteer", "ko'ngilli", "xizmat", "We are looking for volunteers to help."],
+    ["workshop", "amaliy seminar", "xizmat", "The pottery workshop starts at 2 pm."],
+    ["exhibition", "ko'rgazma", "xizmat", "The new exhibition opens on Friday."],
+    ["schedule / timetable", "jadval", "xizmat", "The timetable is on our website."],
+    ["facilities", "qulayliklar", "xizmat", "The facilities include a gym and a pool."],
+    ["refreshments", "yengil taom va ichimliklar", "xizmat", "Refreshments will be provided."],
+    ["souvenir", "esdalik sovg'a", "xizmat", "You can buy a souvenir in the gift shop."],
+
+    ["actually / in fact", "aslida (to'g'rilash signali)", "tuzoq", "It starts at nine. Actually, it's at ten."],
+    ["however / but", "lekin, biroq", "tuzoq", "We planned a picnic. However, it rained."],
+    ["instead of / rather than", "o'rniga", "tuzoq", "Meet at the gate instead of the café."],
+    ["originally", "dastlab (keyin o'zgargan)", "tuzoq", "It was originally on Monday, but now it's Tuesday."],
+    ["unfortunately", "afsuski", "tuzoq", "Unfortunately, the tour is full."],
+    ["change of plan / been moved to", "reja o'zgardi / ko'chirildi", "tuzoq", "The class has been moved to Room 4."],
+    ["apart from / except", "bundan tashqari / ...dan boshqa", "tuzoq", "Open every day except Sunday."],
+    ["postponed", "kechiktirildi", "tuzoq", "The trip has been postponed until next week."],
+    ["cancelled", "bekor qilindi", "tuzoq", "The evening session was cancelled."]
+  ];
+
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  var custom = store.get("lc_custom", []);
+  var status = store.get("lc_status", {});
+  var prefs = store.get("lc_prefs", { cat: "all", shuffle: false, reverse: false });
+  var all = [], order = [], cur = 0, flipped = false;
+
+  function keyOf(w) { return w[0].toLowerCase(); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+
+  function rebuildAll() { all = BASE.concat(custom); }
+
+  function rebuildOrder(keepKey) {
+    var list = all.filter(function (w) {
+      if (prefs.cat === "all") return true;
+      if (prefs.cat === "learn") return status[keyOf(w)] === "learn";
+      return w[2] === prefs.cat;
+    });
+    if (prefs.shuffle) {
+      for (var i = list.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1)); var t = list[i]; list[i] = list[j]; list[j] = t;
+      }
+    }
+    order = list;
+    cur = 0;
+    if (keepKey) for (var n = 0; n < order.length; n++) if (keyOf(order[n]) === keepKey) cur = n;
+    flipped = false;
+  }
+
+  function renderChips() {
+    var cats = ["all", "xarita", "xizmat", "tuzoq"];
+    if (custom.length) cats.push("mening");
+    cats.push("learn");
+    $("chips").innerHTML = cats.map(function (c) {
+      return '<button class="chip" data-cat="' + c + '" aria-pressed="' + (prefs.cat === c) + '">' + CATS[c] + "</button>";
+    }).join("");
+  }
+
+  function renderStats() {
+    var known = all.filter(function (w) { return status[keyOf(w)] === "know"; }).length;
+    $("knownCount").textContent = known;
+    $("totalLabel").textContent = "/ " + all.length + " bilaman";
+    $("barFill").style.width = (all.length ? (known / all.length) * 100 : 0) + "%";
+  }
+
+  function renderCard() {
+    var stage = $("stage");
+    $("shuffle").setAttribute("aria-pressed", String(prefs.shuffle));
+    $("reverse").setAttribute("aria-pressed", String(prefs.reverse));
+    if (!order.length) {
+      stage.innerHTML = '<div class="empty">' + (prefs.cat === "learn" ? "Hali qiyin deb belgilangan so'z yo'q. \"Yana o'rganaman\" tugmasini bosgan so'zlar shu yerga tushadi." : "Bu mavzuda so'z yo'q.") + "</div>";
+      $("pos").textContent = ""; $("actions").hidden = true;
+      return;
+    }
+    $("actions").hidden = false;
+    var w = order[cur], st = status[keyOf(w)];
+    var front = prefs.reverse ? w[1] : w[0];
+    var back = prefs.reverse ? w[0] : w[1];
+    var pill = st === "know" ? '<span class="pill know">bilaman</span>' : st === "learn" ? '<span class="pill learn">qiyin</span>' : "";
+    stage.innerHTML =
+      '<button class="card' + (flipped ? " flipped" : "") + '" id="card" aria-label="Kartani aylantirish">' +
+        '<div class="card-inner">' +
+          '<div class="face front"><div class="tagrow"><span class="tag">' + (prefs.reverse ? "O'zbekcha" : "English") + "</span>" + pill + "</div>" +
+            '<div class="word">' + esc(front) + '</div><div class="hint">Aylantirish uchun bosing</div></div>' +
+          '<div class="face back"><div class="tagrow"><span class="tag">' + (prefs.reverse ? "English" : "O'zbekcha") + "</span>" + pill + "</div>" +
+            '<div><div class="word">' + esc(back) + "</div>" + (w[3] ? '<p class="eg"><em>' + esc(w[3]) + "</em></p>" : "") + "</div>" +
+            '<div class="hint">' + esc(CATS[w[2]] || "") + "</div></div>" +
+        "</div></button>";
+    $("pos").textContent = (cur + 1) + " / " + order.length;
+  }
+
+  function renderMine() {
+    $("mine").innerHTML = custom.map(function (w, i) {
+      return "<li><span><b>" + esc(w[0]) + "</b> — " + esc(w[1]) + '</span><button data-del="' + i + '">o\'chirish</button></li>';
+    }).join("");
+  }
+
+  function renderAll() { renderChips(); renderStats(); renderCard(); renderMine(); }
+
+  function go(d) {
+    if (!order.length) return;
+    cur = (cur + d + order.length) % order.length; flipped = false; renderCard();
+  }
+
+  function mark(s) {
+    if (!order.length) return;
+    var k = keyOf(order[cur]);
+    status[k] = s; store.set("lc_status", status);
+    renderStats();
+    if (prefs.cat === "learn" && s === "know") {
+      rebuildOrder(); if (cur >= order.length) cur = 0; renderCard(); renderChips();
+    } else { go(1); renderChips(); }
+  }
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("button"); if (!t) return;
+    if (t.id === "card" || t.closest("#card")) { flipped = !flipped; renderCard(); return; }
+    if (t.dataset.cat) { prefs.cat = t.dataset.cat; store.set("lc_prefs", prefs); rebuildOrder(); renderChips(); renderCard(); return; }
+    if (t.dataset.del !== undefined) { custom.splice(+t.dataset.del, 1); store.set("lc_custom", custom); rebuildAll(); if (prefs.cat === "mening" && !custom.length) prefs.cat = "all"; rebuildOrder(); renderAll(); return; }
+  });
+  $("know").addEventListener("click", function () { mark("know"); });
+  $("learn").addEventListener("click", function () { mark("learn"); });
+  $("prev").addEventListener("click", function () { go(-1); });
+  $("next").addEventListener("click", function () { go(1); });
+  $("shuffle").addEventListener("click", function () { prefs.shuffle = !prefs.shuffle; store.set("lc_prefs", prefs); rebuildOrder(); renderCard(); });
+  $("reverse").addEventListener("click", function () { prefs.reverse = !prefs.reverse; store.set("lc_prefs", prefs); flipped = false; renderCard(); });
+  var resetArmed = false;
+  $("reset").addEventListener("click", function () {
+    var b = $("reset");
+    if (!resetArmed) { resetArmed = true; b.textContent = "Aniq tozalaymi? Yana bosing"; setTimeout(function () { resetArmed = false; b.textContent = "Natijani tozalash"; }, 3000); return; }
+    resetArmed = false; b.textContent = "Natijani tozalash";
+    status = {}; store.set("lc_status", status); rebuildOrder(); renderAll();
+  });
+
+  $("addForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var en = $("fEn").value.trim(), uz = $("fUz").value.trim();
+    if (!en || !uz) return;
+    custom.push([en, uz, $("fCat").value, $("fEg").value.trim()]);
+    store.set("lc_custom", custom); rebuildAll();
+    $("addForm").reset(); $("fCat").value = "mening";
+    rebuildOrder(en.toLowerCase()); renderAll();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    var tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "select") return;
+    if (e.key === "ArrowRight") go(1);
+    else if (e.key === "ArrowLeft") go(-1);
+    else if (e.key === " " && order.length && tag !== "button") { e.preventDefault(); flipped = !flipped; renderCard(); }
+  });
+
+  rebuildAll();
+  if (prefs.cat === "mening" && !custom.length) prefs.cat = "all";
+  rebuildOrder();
+  renderAll();
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+  }
+</script>
+</body>
+</html>
