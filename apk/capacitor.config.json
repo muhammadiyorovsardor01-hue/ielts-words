@@ -1,0 +1,9 @@
+{
+  "appId": "com.ieltswords.app",
+  "appName": "IELTS Words",
+  "webDir": "www",
+  "server": {
+    "url": "https://muhammadiyorovsardor01-hue.github.io/ielts-words/",
+    "androidScheme": "https"
+  }
+}
