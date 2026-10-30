@@ -1,4 +1,4 @@
-var CACHE = "ielts-words-v3";
+var CACHE = "ielts-words-v4";
 var CORE = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", function (e) {
